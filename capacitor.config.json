@@ -1,0 +1,7 @@
+{
+  "appId": "com.pocketappstudio.restock",
+  "appName": "Restock",
+  "webDir": "www",
+  "ios": { "contentInset": "never", "backgroundColor": "#11140F", "limitsNavigationsToAppBoundDomains": false },
+  "plugins": { "LocalNotifications": {} }
+}

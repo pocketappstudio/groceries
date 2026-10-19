@@ -1,5 +1,6 @@
 import * as L from './logic.js';
 import * as store from './store.js';
+import * as N from './notify.js';
 import { GUMROAD_PRODUCT_ID, GUMROAD_URL, APP_VERSION } from './config.js';
 
 const $app = document.getElementById('app'), $toast = document.getElementById('toast');
@@ -20,6 +21,7 @@ const I = {
   memory: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3 2"/></svg>',
   more: '<svg viewBox="0 0 24 24"><circle cx="5.5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="18.5" cy="12" r="1.2"/></svg>',
   chev: '<svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>',
+  bell: '<svg viewBox="0 0 24 24"><path d="M6 17V11a6 6 0 0112 0v6l1.5 2h-15zM10 21h4"/></svg>',
   warn: '<svg viewBox="0 0 24 24"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17.5v.1"/></svg>',
 };
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
@@ -36,6 +38,7 @@ function commit() {
 }
 function badge() {
   const n = L.needed(S).length;
+  if (N.isNative()) { const t = today(); N.reschedule(S.items.filter(i => i.recurring).map(it => ({ it, di: L.dueInfo(S, it, t) })).filter(x => x.di).map(({ it, di }) => ({ id: it.id, name: it.name, days: it.onList ? 1 : di.days })), n); return; }
   try { if (n && navigator.setAppBadge) navigator.setAppBadge(n); else if (navigator.clearAppBadge) navigator.clearAppBadge(); } catch {}
 }
 const snapshot = () => JSON.stringify(S);
@@ -117,6 +120,7 @@ function homeScreen() {
   return `<div class="tiles">
 <div class="tile" role="group" aria-label="Today"><div class="band"><span>${MONTHS[now.getMonth()]}</span><span>${now.getFullYear()}</span></div><div class="big">${now.getDate()}</div><div class="cap">${now.toLocaleDateString(undefined, { weekday: 'long' })}</div></div>
 <div class="tile need ${list.length ? '' : 'zero'}" role="group" aria-label="To buy"><div class="band"><span>To buy</span></div><div class="big">${list.length}</div><div class="cap">${list.length ? (list.length === 1 ? 'item' : 'items') : 'all stocked'}</div></div></div>
+${N.isNative() && notifPerm === 'prompt' ? `<button class="offer" data-remind><span><span class="t">${I.bell} Reminders</span></span></button>` : ''}
 ${offs.map(o => `<button class="offer" data-go="#/offer/${esc(o.id)}"><span><span class="t">${esc(o.kind === 'holiday' ? 'Last ' + o.title : o.title)}</span><br><span class="s">${esc(o.sub)}${o.kind === 'holiday' ? ' · ' + (o.days <= 0 ? 'today' : o.days + 'd away') : ''}</span></span><span class="n">${o.items.length}</span></button>`).join('')}
 <h2>Need now</h2>${list.length ? `<ul class="list">${rows}</ul>` : `<div class="empty">${I.check}Nothing needed</div>`}
 ${soon.length ? `<h2>Coming due</h2><ul class="list">${soonRows}</ul>` : ''}`;
@@ -248,13 +252,15 @@ function bindMemory() {
   draw();
 }
 
+let notifPerm = 'none';
 function moreScreen() {
   const th = S.settings.theme;
+  const remindRow = N.isNative() && notifPerm !== 'granted' ? `<div class="stack"><button class="btn" data-remind>${I.bell}${notifPerm === 'denied' ? 'Reminders off in Settings' : 'Turn on reminders'}</button></div>` : '';
   return `<h1>More</h1>
 <div class="seg" role="group" aria-label="Appearance">${[['auto', 'Auto'], ['light', 'Light'], ['dark', 'Dark']].map(([k, n]) => `<button data-theme="${k}" aria-pressed="${th === k}">${th === k ? I.check : ''}${n}</button>`).join('')}</div>
-<h2>Backup</h2><div class="menu"><button data-export="json">Export JSON<small>.json</small></button><button data-export="csv">Export CSV<small>.csv</small></button><button data-import>Import<small>.json .csv</small></button></div>
+${remindRow}<h2>Backup</h2><div class="menu"><button data-export="json">Export JSON<small>.json</small></button><button data-export="csv">Export CSV<small>.csv</small></button><button data-import>Import<small>.json .csv</small></button></div>
 <input id="file" type="file" accept=".json,.csv,application/json,text/csv,text/plain" hidden>
-<h2>Studio</h2><div class="menu"><a href="${GUMROAD_URL}" target="_blank" rel="noopener">Support${I.chev}</a><a href="privacy.html">Privacy &amp; terms${I.chev}</a><div>Version<small>${APP_VERSION}</small></div></div>`;
+<h2>Studio</h2><div class="menu">${GUMROAD_URL ? `<a href="${GUMROAD_URL}" target="_blank" rel="noopener">Support${I.chev}</a>` : ''}<a href="privacy.html">Privacy &amp; terms${I.chev}</a><div>Version<small>${APP_VERSION}</small></div></div>`;
 }
 function gate() {
   return `<div class="gate center"><img src="icons/icon-192.png" alt="" width="96" height="96"><h1 style="margin-top:20px">Restock</h1>
@@ -302,6 +308,7 @@ function clicks(e) {
   const th = e.target.closest('[data-theme]'); if (th) { S.settings.theme = th.dataset.theme; commit(); applyTheme(); render(); return true; }
   const ex = e.target.closest('[data-export]'); if (ex) { exportData(ex.dataset.export); return true; }
   if (e.target.closest('[data-import]')) { const f = document.getElementById('file'); f.onchange = () => importFile(f.files[0]); f.click(); return true; }
+  if (e.target.closest('[data-remind]')) { N.ask().then(p => { notifPerm = p; badge(); render(); }); return true; }
   if (e.target.closest('#licgo')) { activate(); return true; }
   return false;
 }
@@ -344,13 +351,14 @@ async function importFile(f) {
 async function boot() {
   const st = await store.get('state'); if (st) S = Object.assign(L.emptyState(), st);
   const lic = await store.get('license'); if (lic) license = lic;
+  notifPerm = await N.permission();
   applyTheme(); matchMedia('(prefers-color-scheme:dark)').addEventListener?.('change', applyTheme);
   if (L.refreshDue(S, today()).length) commit(); else badge();
   render();
   store.persist();
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { if (L.refreshDue(S, today()).length) commit(); const r = route(); if (['home', ''].includes(r.name)) render(); else badge(); } });
 }
-if ('serviceWorker' in navigator) {
+if ('serviceWorker' in navigator && !N.isNative()) {
   const had = !!navigator.serviceWorker.controller;
   navigator.serviceWorker.register('sw.js').catch(() => {});
   navigator.serviceWorker.addEventListener('controllerchange', () => { if (had && route().name === 'home') location.reload(); });
