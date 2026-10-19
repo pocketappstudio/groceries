@@ -5,12 +5,18 @@ on:
   workflow_dispatch:
     inputs:
       testflight: { description: 'Upload signed build to TestFlight', type: boolean, default: false }
-concurrency: { group: ios-${{ github.ref }}, cancel-in-progress: true }
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   web-tests:
     runs-on: ubuntu-latest
     steps:
+      - name: Select Xcode 26
+        run: |
+          X=$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)
+          sudo xcode-select -s "$X/Contents/Developer"
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm }
@@ -29,8 +35,13 @@ jobs:
 
   simulator-build:
     needs: web-tests
-    runs-on: macos-15
+    runs-on: macos-26
     steps:
+      - name: Select Xcode 26
+        run: |
+          X=$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)
+          sudo xcode-select -s "$X/Contents/Developer"
+          xcodebuild -version
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm }
@@ -49,12 +60,12 @@ jobs:
     # Runs only when started manually with testflight=true and the secrets below exist.
     if: github.event_name == 'workflow_dispatch' && inputs.testflight
     needs: simulator-build
-    runs-on: macos-15
+    runs-on: macos-26
     env:
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
       ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
       ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
-      ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+      ASC_KEY_P8: ${{ secrets.ASC_KEY_P8_BASE64 }}
     steps:
       - name: Check secrets
         run: |
@@ -69,7 +80,7 @@ jobs:
       - name: Install App Store Connect key
         run: |
           mkdir -p ~/.appstoreconnect/private_keys
-          printf '%s' "$ASC_KEY_P8" > ~/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8
+          printf '%s' "$ASC_KEY_P8" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8
       - name: Archive (cloud-managed signing)
         run: |
           xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release \
