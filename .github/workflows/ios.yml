@@ -13,10 +13,6 @@ jobs:
   web-tests:
     runs-on: ubuntu-latest
     steps:
-      - name: Select Xcode 26
-        run: |
-          X=$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)
-          sudo xcode-select -s "$X/Contents/Developer"
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm }
