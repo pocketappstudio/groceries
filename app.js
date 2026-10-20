@@ -38,7 +38,7 @@ function commit() {
 }
 function badge() {
   const n = L.needed(S).length;
-  if (N.isNative()) { const t = today(); N.reschedule(S.items.filter(i => i.recurring).map(it => ({ it, di: L.dueInfo(S, it, t) })).filter(x => x.di).map(({ it, di }) => ({ id: it.id, name: it.name, days: it.onList ? 1 : di.days })), n); return; }
+  if (N.isNative()) { const t = today(); N.widgetSync({ need: L.needed(S).map(it => { const di = L.dueInfo(S, it, t); return { n: it.name, next: it.auto && di ? di.next : null }; }), soon: L.coming(S, t, 20).map(({ it, di }) => ({ n: it.name, next: di.next, lead: di.lead })) }); N.reschedule(S.items.filter(i => i.recurring).map(it => ({ it, di: L.dueInfo(S, it, t) })).filter(x => x.di).map(({ it, di }) => ({ id: it.id, name: it.name, days: it.onList ? 1 : di.days })), n); return; }
   try { if (n && navigator.setAppBadge) navigator.setAppBadge(n); else if (navigator.clearAppBadge) navigator.clearAppBadge(); } catch {}
 }
 const snapshot = () => JSON.stringify(S);
