@@ -198,7 +198,7 @@ function setScreen(id) {
   const s = S.sets.find(x => x.id === id); if (!s) return top('', '#/sets') + '<h1>Not found</h1>';
   return `${top('', '#/sets')}<div class="field"><input id="sname" value="${esc(s.name)}" aria-label="Set name" autocomplete="off" enterkeyhint="done"></div>
 <div class="chips" id="schips"></div>
-<div class="field" style="margin-top:16px"><input id="sadd" placeholder="Add item" aria-label="Add item to set" autocomplete="off" enterkeyhint="done" autocapitalize="sentences"><button class="iconbtn" id="saddb" aria-label="Add">${I.plus}</button></div>
+<form class="field" id="saddf" style="margin-top:16px" action="#" autocomplete="off"><input id="sadd" type="text" placeholder="Add item" aria-label="Add item to set" autocomplete="off" enterkeyhint="go" autocapitalize="sentences"><button class="iconbtn" id="saddb" type="submit" aria-label="Add">${I.plus}</button></form>
 <h2>Returns near</h2><select id="socc" aria-label="Returns near"><option value="">Never</option>${L.HOLIDAYS.map(h => `<option value="${h.key}" ${s.occasion === h.key ? 'selected' : ''}>${esc(h.name)}</option>`).join('')}</select>
 <div class="stack"><button class="btn warn" data-delset="${s.id}">Delete set</button></div>
 <div class="screen-dock"><button class="btn" id="sall" ${s.items.length ? '' : 'disabled'}>${I.check}Add all to list</button></div><div style="height:90px"></div>`;
@@ -207,12 +207,16 @@ function bindSet(id) {
   const s = S.sets.find(x => x.id === id); if (!s) return;
   const $c = document.getElementById('schips'), $a = document.getElementById('sadd');
   const paintC = () => { $c.innerHTML = s.items.map(n => `<span class="chip">${esc(n)}<button class="iconbtn" style="min-width:48px;min-height:48px" data-sdel="${esc(n)}" aria-label="Remove ${esc(n)}">${I.x}</button></span>`).join(''); const b = document.getElementById('sall'); b.disabled = !s.items.length; };
-  const addI = () => { const d = L.parseEntry($a.value); for (const n of d) if (!s.items.some(x => L.keyOf(x) === L.keyOf(n))) s.items.push(n); $a.value = ''; commit(); paintC(); };
+  const addI = () => { const d = L.parseEntry($a.value); $a.value = ''; if (!d.length) return; for (const n of d) if (!s.items.some(x => L.keyOf(x) === L.keyOf(n))) s.items.push(n); commit(); paintC(); };
   document.getElementById('sname').oninput = e => { s.name = e.target.value.trim() || 'Set'; commit(); };
-  $a.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); addI(); } };
-  document.getElementById('saddb').onclick = addI;
+  // iOS: the keyboard's Go key submits the form; keeping focus on + stops the keyboard from closing (and the layout jumping) mid-tap.
+  document.getElementById('saddf').onsubmit = e => { e.preventDefault(); addI(); };
+  const $b = document.getElementById('saddb');
+  $b.addEventListener('pointerdown', e => { if (document.activeElement === $a) e.preventDefault(); });
+  $b.addEventListener('touchstart', e => { if (document.activeElement === $a) { e.preventDefault(); addI(); } }, { passive: false });
+  $a.addEventListener('blur', () => { if ($a.value.trim()) addI(); });
   document.getElementById('socc').onchange = e => { s.occasion = e.target.value || null; commit(); };
-  document.getElementById('sall').onclick = () => { const snap = snapshot(); L.addNames(S, s.items); commit(); go('#/home', 'back'); toast(`Added ${s.items.length} from ${s.name}`, snap); };
+  document.getElementById('sall').onclick = () => { if ($a.value.trim()) addI(); const snap = snapshot(); L.addNames(S, s.items); commit(); go('#/home', 'back'); toast(`Added ${s.items.length} from ${s.name}`, snap); };
   screenClick = e => { const d = e.target.closest('[data-sdel]'); if (d) { s.items = s.items.filter(n => n !== d.dataset.sdel); commit(); paintC(); return true; } };
   paintC();
 }
