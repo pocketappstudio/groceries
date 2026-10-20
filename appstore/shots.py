@@ -14,16 +14,19 @@ L.addSet(S,'Thanksgiving casserole',['Green beans','Fried onions','Cream of mush
 L.addSet(S,'Taco night',['Tortillas','Ground beef','Cheddar','Salsa','Lettuce']);
 L.addNames(S,['Apples','Spinach','Olive oil']);
 L.refreshDue(S,'2026-11-16');S.updated=Date.now();await st.set('state',S);}"""
+import sys
+IPAD='ipad' in sys.argv
+VP={'width':1032,'height':1376} if IPAD else {'width':440,'height':956}; DSF=2 if IPAD else 3; OUT='screenshots-ipad' if IPAD else 'screenshots'
 with sync_playwright() as p:
   b=p.chromium.launch()
   for theme in ['light','dark']:
-    c=b.new_context(viewport={'width':440,'height':956},device_scale_factor=3,is_mobile=True,has_touch=True,color_scheme=theme)
+    c=b.new_context(viewport=VP,device_scale_factor=DSF,is_mobile=True,has_touch=True,color_scheme=theme)
     c.clock.set_fixed_time(datetime.datetime(2026,11,16,10,0))
     pg=c.new_page();pg.goto(B);pg.wait_for_selector('.tiles');pg.evaluate(SEED);pg.reload();pg.wait_for_selector('.tiles')
     for i,(h,name) in enumerate([('#/home','home'),('#/add','add'),('#/memory','memory'),('#/sets','sets')]):
-      pg.goto(B+h);pg.wait_for_timeout(700);pg.screenshot(path=f'appstore/screenshots/{i+1}-{name}-{theme}.png')
+      pg.goto(B+h);pg.wait_for_timeout(700);pg.screenshot(path=f'appstore/{OUT}/{i+1}-{name}-{theme}.png')
     pg.goto(B+'#/home');pg.wait_for_timeout(500)
-    pg.goto(B+'#/offer/h:thanksgiving:2026');pg.wait_for_timeout(700);pg.screenshot(path=f'appstore/screenshots/5-thanksgiving-{theme}.png')
+    pg.goto(B+'#/offer/h:thanksgiving:2026');pg.wait_for_timeout(700);pg.screenshot(path=f'appstore/{OUT}/5-thanksgiving-{theme}.png')
     mid=pg.evaluate("async()=>{const st=await import('./store.js');const S=await st.get('state');return S.items.find(i=>i.name=='Milk').id}")
-    pg.goto(B+'#/item/'+mid);pg.wait_for_timeout(700);pg.screenshot(path=f'appstore/screenshots/6-milk-recurring-{theme}.png')
+    pg.goto(B+'#/item/'+mid);pg.wait_for_timeout(700);pg.screenshot(path=f'appstore/{OUT}/6-milk-recurring-{theme}.png')
     c.close()
