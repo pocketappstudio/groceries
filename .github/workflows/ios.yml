@@ -20,7 +20,7 @@ jobs:
       - run: npm run test:logic
       - uses: actions/setup-python@v5
         with: { python-version: '3.12' }
-      - run: pip install playwright && playwright install --with-deps chromium
+      - run: pip install playwright && playwright install --with-deps chromium webkit
       - name: Browser tests
         run: |
           python3 -m http.server 8765 >/dev/null 2>&1 &
@@ -28,6 +28,7 @@ jobs:
           mkdir -p tests/shots
           python3 tests/test.py
           python3 tests/test_gate.py
+          python3 tests/test_sets.py
 
   simulator-build:
     needs: web-tests

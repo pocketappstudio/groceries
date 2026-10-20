@@ -49,3 +49,11 @@ export function reschedule(items, badgeCount) {
   });
   return busy;
 }
+// Native-only: hand the home-screen glance to the iOS widget (shared App Group). No-op on the web.
+const WG = () => plug('RestockWidget');
+let lastWidget = '';
+export function widgetSync(snap) {
+  const w = WG(); if (!w) return;
+  const json = JSON.stringify(snap); if (json === lastWidget) return; lastWidget = json;
+  try { w.setSnapshot({ json }).catch(() => {}); } catch {}
+}
