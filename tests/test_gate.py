@@ -19,7 +19,10 @@ with sync_playwright() as p:
         pg.route('https://api.gumroad.com/**',mk(mode))
         pg.goto('http://localhost:8765/'); pg.wait_for_selector('#lic'); ok(pg.locator('.gate a.btn').get_attribute('href')=='https://pocketappstudio.gumroad.com/l/xkfjwt', f'{mode}: buy link is product URL'); pg.fill('#lic','KEY-1'); pg.click('#licgo')
         if mode=='bad':
-            pg.wait_for_selector('.err'); ok(True,'bad key shows error, stays gated')
+            pg.wait_for_selector('.err'); ok('not recognized' in pg.inner_text('.err'),'bad key shows error, stays gated')
+        elif mode=='down':
+            pg.wait_for_selector('.err'); ok("Couldn't reach the license server" in pg.inner_text('.err') and pg.locator('.tiles').count()==0,'down: stays locked with message')
+            pg.reload(); pg.wait_for_selector('#lic'); ok(pg.locator('.tiles').count()==0,'down: still locked after reload')
         else:
             pg.wait_for_selector('.tiles'); ok(True,f'{mode}: app opens')
             pg.reload(); pg.wait_for_selector('.tiles'); ok(True,f'{mode}: no re-check, stays open')

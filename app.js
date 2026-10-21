@@ -323,8 +323,8 @@ async function activate() {
   if (!key) return;
   b.disabled = true; b.textContent = 'Checking';
   const r = await verify(key);
-  if (r === 'bad') { $e.innerHTML = `<div class="err">${I.warn}Key not recognized</div>`; b.disabled = false; b.textContent = 'Activate'; return; }
-  license = { ok: true, at: today(), verified: r === 'ok', updated: Date.now() };
+  if (r !== 'ok') { $e.innerHTML = `<div class="err">${I.warn}${r === 'bad' ? 'Key not recognized' : "Couldn't reach the license server. Check your connection and try again."}</div>`; b.disabled = false; b.textContent = 'Activate'; return; }
+  license = { ok: true, at: today(), verified: true, updated: Date.now() };
   await store.set('license', license); render();
 }
 
