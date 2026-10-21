@@ -1,3 +1,4 @@
+import sys, os; sys.path.insert(0, os.path.dirname(__file__)); from openconfig import open_app
 import json, sys, re, os, datetime
 from playwright.sync_api import sync_playwright
 BASE='http://localhost:8765/'
@@ -10,6 +11,7 @@ def at(ctx,d):
 IPHONE=dict(viewport={'width':390,'height':844},device_scale_factor=3,is_mobile=True,has_touch=True)
 with sync_playwright() as p:
     b=p.chromium.launch()
+    open_app(b)
     # ---- A. pure logic
     ctx=b.new_context(**IPHONE); pg=ctx.new_page(); pg.goto(BASE); pg.wait_for_selector('.tiles')
     r=pg.evaluate("""async()=>{const L=await import('./logic.js');const o={};

@@ -1,7 +1,7 @@
 import * as L from './logic.js';
 import * as store from './store.js';
 import * as N from './notify.js';
-import { GUMROAD_PRODUCT_ID, GUMROAD_URL, APP_VERSION } from './config.js';
+import { LICENSE_PRODUCT_ID, LICENSE_VERIFY_URL, BUY_URL, APP_VERSION } from './config.js';
 
 const $app = document.getElementById('app'), $toast = document.getElementById('toast');
 let S = L.emptyState(), license = { ok: false };
@@ -72,7 +72,7 @@ let lastRoute = 'home';
 
 function render() {
   const r = route();
-  if (GUMROAD_PRODUCT_ID && !license.ok) return paint(gate(), 'tab');
+  if (LICENSE_PRODUCT_ID && !license.ok) return paint(gate(), 'tab');
   const isTab = tabNames.includes(r.name);
   const dir = navDir || (isTab ? 'tab' : ''); navDir = '';
   let html;
@@ -264,18 +264,18 @@ function moreScreen() {
 <div class="seg" role="group" aria-label="Appearance">${[['auto', 'Auto'], ['light', 'Light'], ['dark', 'Dark']].map(([k, n]) => `<button data-theme="${k}" aria-pressed="${th === k}">${th === k ? I.check : ''}${n}</button>`).join('')}</div>
 ${remindRow}<h2>Backup</h2><div class="menu"><button data-export="json">Export JSON<small>.json</small></button><button data-export="csv">Export CSV<small>.csv</small></button><button data-import>Import<small>.json .csv</small></button></div>
 <input id="file" type="file" accept=".json,.csv,application/json,text/csv,text/plain" hidden>
-<h2>Studio</h2><div class="menu">${GUMROAD_URL ? `<a href="${GUMROAD_URL}" target="_blank" rel="noopener">Support${I.chev}</a>` : ''}<a href="privacy.html">Privacy &amp; terms${I.chev}</a><div>Version<small>${APP_VERSION}</small></div></div>`;
+<h2>Studio</h2><div class="menu">${BUY_URL ? `<a href="${BUY_URL}" target="_blank" rel="noopener">Support${I.chev}</a>` : ''}<a href="privacy.html">Privacy &amp; terms${I.chev}</a><div>Version<small>${APP_VERSION}</small></div></div>`;
 }
 function gate() {
   return `<div class="gate center"><img src="icons/icon-192.png" alt="" width="96" height="96"><h1 style="margin-top:20px">Restock</h1>
 <div class="field"><input id="lic" placeholder="License key" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="License key"></div>
-<div id="licerr"></div><div class="stack"><button class="btn" id="licgo">Activate</button><a class="btn ghost" href="${GUMROAD_URL}" target="_blank" rel="noopener" style="text-decoration:none">Get Restock</a></div></div>`;
+<div id="licerr"></div><div class="stack"><button class="btn" id="licgo">Activate</button><a class="btn ghost" href="${BUY_URL}" target="_blank" rel="noopener" style="text-decoration:none">Get Restock</a></div></div>`;
 }
 async function verify(key) {
   const ctrl = new AbortController(), t = setTimeout(() => ctrl.abort(), 9000);
   try {
-    const r = await fetch('https://api.gumroad.com/v2/licenses/verify', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, signal: ctrl.signal,
-      body: new URLSearchParams({ product_id: GUMROAD_PRODUCT_ID, license_key: key, increment_uses_count: 'false' }) });
+    const r = await fetch(LICENSE_VERIFY_URL, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, signal: ctrl.signal,
+      body: new URLSearchParams({ product_id: LICENSE_PRODUCT_ID, license_key: key, increment_uses_count: 'false' }) });
     const j = await r.json();
     return j && j.success === true ? 'ok' : j && j.success === false ? 'bad' : 'unknown';
   } catch { return 'unknown'; } finally { clearTimeout(t); }

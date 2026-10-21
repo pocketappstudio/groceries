@@ -1,3 +1,4 @@
+import sys, os; sys.path.insert(0, os.path.dirname(__file__)); from openconfig import open_app
 # Set editor: add items via + and via Enter/Go, then leave and reopen; items must persist (also after reload).
 import sys
 from playwright.sync_api import sync_playwright
@@ -9,7 +10,8 @@ with sync_playwright() as p:
   for eng in ['chromium','webkit']:
     try: b=getattr(p,eng).launch()
     except Exception as e: print('SKIP',eng,e.__class__.__name__); continue
-    ctx=b.new_context(viewport={'width':390,'height':844},has_touch=True); pg=ctx.new_page()
+    open_app(b)
+    ctx=b.new_context(viewport={'width':390,'height':844},has_touch=True,service_workers='block'); pg=ctx.new_page()
     errs=[]; pg.on('pageerror',lambda e:errs.append(str(e)))
     pg.goto(BASE+'#/sets'); pg.wait_for_selector('[data-newset]')
     pg.locator('[data-newset]').tap(); pg.wait_for_selector('#sadd'); pg.wait_for_timeout(400)
